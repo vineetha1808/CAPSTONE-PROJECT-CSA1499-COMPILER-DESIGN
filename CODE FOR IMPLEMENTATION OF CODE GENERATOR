@@ -1,0 +1,122 @@
+#include <stdio.h>
+#include <ctype.h>
+#include <string.h>
+
+// Max size of input
+#define MAX_SIZE 100
+
+// Token types
+enum TokenType { VARIABLE, OPERATOR, PARENTHESIS, UNKNOWN };
+
+// Structure for tokens
+typedef struct {
+    enum TokenType type;
+    char value;
+} Token;
+
+// Lexical analysis function
+int lexicalAnalysis(char *input, Token tokens[], int *numTokens) {
+    int i = 0, tokenIndex = 0;
+    
+    while (input[i] != '\0') {
+        if (isspace(input[i])) {
+            i++;
+            continue;
+        }
+        
+        if (isalpha(input[i])) {
+            tokens[tokenIndex].type = VARIABLE;
+            tokens[tokenIndex].value = input[i];
+            tokenIndex++;
+        } else if (input[i] == '+' || input[i] == '-' || input[i] == '*' || input[i] == '/') {
+            tokens[tokenIndex].type = OPERATOR;
+            tokens[tokenIndex].value = input[i];
+            tokenIndex++;
+        } else if (input[i] == '(' || input[i] == ')') {
+            tokens[tokenIndex].type = PARENTHESIS;
+            tokens[tokenIndex].value = input[i];
+            tokenIndex++;
+        } else {
+            return 0; // Unknown token
+        }
+        
+        i++;
+    }
+    
+    *numTokens = tokenIndex;
+    return 1; // Success
+}
+
+// Syntax analysis function
+int syntaxAnalysis(Token tokens[], int numTokens) {
+    // Basic check for balanced parentheses and a valid sequence of tokens
+    int balance = 0;
+    if (tokens[0].type == OPERATOR || tokens[numTokens - 1].type == OPERATOR) return 0;
+    int i;
+    for ( i = 0; i < numTokens; i++) {
+        if (tokens[i].type == PARENTHESIS) {
+            if (tokens[i].value == '(') balance++;
+            else balance--;
+            if (balance < 0) return 0;
+        } else if (tokens[i].type == OPERATOR) {
+            if (i == 0 || i == numTokens - 1) return 0;
+            if (tokens[i + 1].type == OPERATOR || tokens[i - 1].type == OPERATOR) return 0;
+        }
+    }
+
+    return balance == 0 ? 1 : 0;
+}
+
+// Intermediate code generation function
+void intermediateCode(Token tokens[], int numTokens) {
+    printf("Intermediate Code:\n");
+    int i;
+    for ( i = 0; i < numTokens; i++) {
+        printf("%c ", tokens[i].value);
+    }
+    printf("\n");
+}
+
+// Final code generation function (simple assembly)
+void codeGeneration(Token tokens[], int numTokens) {
+    printf("Assembly Code:\n");
+    int i;
+    for ( i = 0; i < numTokens; i++) {
+        if (tokens[i].type == VARIABLE) {
+            printf("MOV R%d, %c\n", i / 2 + 1, tokens[i].value);
+        } else if (tokens[i].type == OPERATOR) {
+            char op = tokens[i].value == '+' ? "ADD" : tokens[i].value == '-' ? "SUB" : tokens[i].value == '' ? "MUL" : "DIV";
+            printf("%s R%d, R%d\n", op, (i - 1) / 2 + 1, (i + 1) / 2 + 1);
+        }
+    }
+}
+
+int main() {
+    char input[MAX_SIZE];
+    Token tokens[MAX_SIZE];
+    int numTokens;
+    
+    printf("Enter an expression: ");
+    fgets(input, sizeof(input), stdin);
+    input[strcspn(input, "\n")] = 0; // Remove newline
+    
+    // Phase 1: Lexical analysis
+    if (!lexicalAnalysis(input, tokens, &numTokens)) {
+        printf("Lexical Error: Invalid input\n");
+        return 1;
+    }
+    
+    // Phase 2: Syntax analysis
+    if (!syntaxAnalysis(tokens, numTokens)) {
+        printf("Syntax Error: Invalid expression\n");
+        return 1;
+    }
+    
+    // Phase 3: Intermediate code generation
+    intermediateCode(tokens, numTokens);
+    
+    // Phase 4: Final code generation
+    codeGeneration(tokens, numTokens);
+    
+    return 0;
+}
